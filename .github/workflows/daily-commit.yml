@@ -1,0 +1,26 @@
+name: 🟩 Auto Daily Commit
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Setiap hari jam 06:00 UTC (13:00 WIB)
+  workflow_dispatch:     # Bisa dijalankan manual juga
+
+jobs:
+  auto-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Buat Perubahan Harian
+        run: |
+          echo "Update: $(date)" >> log.txt
+
+      - name: Commit & Push Perubahan
+        run: |
+          git config --global user.name "Falzz1010"
+          git config --global user.email "setiawandandy845@gmail.com"  # Ganti email ini
+          git add .
+          git commit -m "🟩 Auto commit on $(date)" || echo "Nothing to commit"
+          git push

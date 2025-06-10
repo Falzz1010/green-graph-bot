@@ -9,6 +9,9 @@ jobs:
   auto-commit:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write  # ⬅️ WAJIB: agar token bisa push
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -18,11 +21,9 @@ jobs:
           echo "Update: $(date)" >> log.txt
 
       - name: Commit & Push Perubahan
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "Falzz1010"
-          git config --global user.email "setiawandandy845@gmail.com"  # Email GitHub kamu
+          git config --global user.email "setiawandandy845@gmail.com"
           git add .
           git commit -m "🟩 Auto commit on $(date)" || echo "Nothing to commit"
-          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+          git push origin HEAD

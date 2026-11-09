@@ -1,29 +1,71 @@
+
 name: 🟩 Auto Daily Commit
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # Setiap hari jam 06:00 UTC (13:00 WIB)
-  workflow_dispatch:     # Bisa dijalankan manual juga
+    # 3 slot pemeriksaan setiap hari (UTC)
+    - cron: '0 2 * * *'   # 09:00 WIB
+    - cron: '0 6 * * *'   # 13:00 WIB
+    - cron: '0 11 * * *'  # 18:00 WIB
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   auto-commit:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write  # ⬅️ WAJIB: agar token bisa push
-
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Tentukan Jadwal Acak
+        id: schedule
+        run: |
+          DAY=$(date -u +%j)
+          YEAR=$(date -u +%Y)
+
+          # Seed konsisten untuk 1 hari
+          COUNT=$(( (10#$DAY + 10#$YEAR) % 3 + 1 ))
+
+          SLOT=$(( (10#$DAY + 10#$YEAR) % 3 + 1 ))
+
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "slot=$SLOT" >> "$GITHUB_OUTPUT"
+
+          echo "Target commit hari ini: $COUNT"
+          echo "Slot aktif: $SLOT"
+
+      - name: Cek Slot Jadwal
+        id: check
+        run: |
+          HOUR=$(date -u +%H)
+          SLOT="${{ steps.schedule.outputs.slot }}"
+
+          case "$SLOT" in
+            1) TARGET=2 ;;
+            2) TARGET=6 ;;
+            3) TARGET=11 ;;
+          esac
+
+          if [ "$HOUR" -eq "$TARGET" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Buat Perubahan Harian
+        if: steps.check.outputs.run == 'true' || github.event_name == 'workflow_dispatch'
         run: |
-          echo "Update: $(date)" >> log.txt
+          echo "Update: $(date -u)" >> log.txt
 
-      - name: Commit & Push Perubahan
+      - name: Commit & Push
+        if: steps.check.outputs.run == 'true' || github.event_name == 'workflow_dispatch'
         run: |
-          git config --global user.name "Falzz1010"
-          git config --global user.email "setiawandandy845@gmail.com"
-          git add .
-          git commit -m "🟩 Auto commit on $(date)" || echo "Nothing to commit"
+          git config user.name "Falzz1010"
+          git config user.email "setiawandandy845@gmail.com"
+
+          git add log.txt
+          git commit -m "chore: daily activity update $(date -u +%F)"
           git push origin HEAD

@@ -27,25 +27,33 @@ jobs:
           TODAY=$(date -u +"%a %b %e")
           COUNT=$(grep -c "^Update: ${TODAY} " log.txt || true)
 
+          echo "Cek otomatis harian..."
           echo "Commit hari ini: $COUNT"
 
           if [ "$COUNT" -lt 3 ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Status: masih di bawah batas (3), lanjut commit"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Status: sudah mencapai 3 commit hari ini, skip"
           fi
 
       - name: Buat Perubahan Harian
         if: steps.check.outputs.run == 'true'
         run: |
+          echo "Membuat perubahan harian..."
           echo "Update: $(date -u)" >> log.txt
+          echo "Perubahan dibuat: $(date -u)"
 
       - name: Commit & Push
         if: steps.check.outputs.run == 'true'
         run: |
+          echo "Commit & push dimulai..."
           git config user.name "Falzz1010"
           git config user.email "setiawandandy845@gmail.com"
 
           git add log.txt
           git commit -m "chore: daily activity update $(date -u +%F)"
+          echo "Commit sukses: $(date -u +%F)"
           git push origin HEAD
+          echo "Push sukses."

@@ -3,7 +3,7 @@ name: 🟩 Auto Daily Commit
 
 on:
   schedule:
-    # 3 slot pemeriksaan setiap hari (UTC)
+    # 3 cron untuk memungkinkan commit hingga 3x per hari (UTC)
     - cron: '0 2 * * *'   # 09:00 WIB
     - cron: '0 6 * * *'   # 13:00 WIB
     - cron: '0 11 * * *'  # 18:00 WIB
@@ -20,48 +20,28 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Tentukan Jadwal Acak
-        id: schedule
-        run: |
-          DAY=$(date -u +%j)
-          YEAR=$(date -u +%Y)
-
-          # Seed konsisten untuk 1 hari
-          COUNT=$(( (10#$DAY + 10#$YEAR) % 3 + 1 ))
-
-          SLOT=$(( (10#$DAY + 10#$YEAR) % 3 + 1 ))
-
-          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
-          echo "slot=$SLOT" >> "$GITHUB_OUTPUT"
-
-          echo "Target commit hari ini: $COUNT"
-          echo "Slot aktif: $SLOT"
-
-      - name: Cek Slot Jadwal
+      - name: Cek Jumlah Commit Hari Ini
         id: check
         run: |
-          HOUR=$(date -u +%H)
-          SLOT="${{ steps.schedule.outputs.slot }}"
+          # Hitung jumlah commit hari ini di log.txt
+          TODAY=$(date -u +"%a %b %e")
+          COUNT=$(grep -c "^Update: ${TODAY} " log.txt || true)
 
-          case "$SLOT" in
-            1) TARGET=2 ;;
-            2) TARGET=6 ;;
-            3) TARGET=11 ;;
-          esac
+          echo "Commit hari ini: $COUNT"
 
-          if [ "$HOUR" -eq "$TARGET" ]; then
+          if [ "$COUNT" -lt 3 ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Buat Perubahan Harian
-        if: steps.check.outputs.run == 'true' || github.event_name == 'workflow_dispatch'
+        if: steps.check.outputs.run == 'true'
         run: |
           echo "Update: $(date -u)" >> log.txt
 
       - name: Commit & Push
-        if: steps.check.outputs.run == 'true' || github.event_name == 'workflow_dispatch'
+        if: steps.check.outputs.run == 'true'
         run: |
           git config user.name "Falzz1010"
           git config user.email "setiawandandy845@gmail.com"
